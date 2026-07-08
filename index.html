@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Interactive neural network playground — design, train, and visualize deep learning models in real time, right in your browser. No dependencies required." />
+  <meta name="description" content="Interactive neural network playground — design, train, and visualize deep learning models in real time. Features dropout, L2 regularization, multiclass support, neuron inspector, and run comparison." />
   <title>Neural Network Playground</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -13,95 +13,105 @@
 
   <!-- ═══════════════════════════════════════════════════════════════════════
        HEADER
-  ════════════════════════════════════════════════════════════════════════════ -->
+  ═══════════════════════════════════════════════════════════════════════════ -->
   <header id="header">
     <div class="header-brand">
       <div class="brand-icon">🧠</div>
       <span class="brand-name">Neural Network Playground</span>
+      <span style="font-size:9px;color:var(--text-muted);margin-left:4px;">v2</span>
     </div>
 
-    <div class="header-status">
+    <div class="header-center">
       <div id="status-badge" class="status-badge">
         <div class="status-dot"></div>
         <span id="status-text">Idle</span>
       </div>
-      <span style="font-size:12px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">
-        Epoch: <span id="stat-epoch" style="color:var(--indigo-400);font-weight:700;">0</span>
-      </span>
+      <div class="epoch-badge">
+        Epoch <span id="stat-epoch">0</span>
+      </div>
+      <div class="kbd-hint">
+        <span class="kbd">Space</span> train
+        <span class="kbd">R</span> reset
+        <span class="kbd">G</span> regen
+        <span class="kbd">N/B/I/C</span> tabs
+      </div>
     </div>
 
     <div class="header-actions">
       <input type="file" id="import-file" accept=".json" style="display:none" />
-      <button id="btn-import" class="btn btn-ghost btn-sm" data-tooltip="Import a saved model">
-        📂 Import
-      </button>
-      <button id="btn-export" class="btn btn-ghost btn-sm" data-tooltip="Export model weights as JSON">
-        💾 Export
-      </button>
+      <button id="btn-import" class="btn btn-ghost btn-sm" data-tooltip="Import saved model JSON">📂 Import</button>
+      <button id="btn-export" class="btn btn-ghost btn-sm" data-tooltip="Export model weights as JSON">💾 Export</button>
     </div>
   </header>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
-       LEFT PANEL — Architecture & Data
-  ════════════════════════════════════════════════════════════════════════════ -->
+       LEFT PANEL — Architecture
+  ═══════════════════════════════════════════════════════════════════════════ -->
   <aside class="panel" id="left-panel">
 
-    <!-- Network Architecture -->
+    <!-- Presets -->
+    <div class="panel-section">
+      <div class="section-title">Quick Presets</div>
+      <div class="presets-grid">
+        <button class="preset-btn" data-preset="tiny"   title="[2,4,1]">Tiny<span class="preset-key">①</span></button>
+        <button class="preset-btn" data-preset="small"  title="[2,8,8,1]">Small<span class="preset-key">②</span></button>
+        <button class="preset-btn" data-preset="medium" title="[2,16,16,1]">Med<span class="preset-key">③</span></button>
+        <button class="preset-btn" data-preset="deep"   title="[2,8×4,1]">Deep<span class="preset-key">④</span></button>
+        <button class="preset-btn" data-preset="wide"   title="[2,32,32,1]">Wide<span class="preset-key">⑤</span></button>
+      </div>
+    </div>
+
+    <!-- Architecture editor -->
     <div class="panel-section">
       <div class="section-title">Network Architecture</div>
       <div id="layers-editor"></div>
     </div>
 
-    <!-- Architecture Controls -->
+    <!-- Activation + build -->
     <div class="panel-section">
       <div class="field">
-        <label>
-          Activation Function
-        </label>
+        <label>Activation Function</label>
         <select id="activation-select">
-          <option value="tanh">Tanh</option>
+          <option value="tanh" selected>Tanh</option>
           <option value="relu">ReLU</option>
           <option value="sigmoid">Sigmoid</option>
           <option value="leakyrelu">Leaky ReLU</option>
+          <option value="elu">ELU</option>
+          <option value="swish">Swish</option>
           <option value="linear">Linear</option>
         </select>
       </div>
-
       <div class="train-btn-group">
-        <button id="btn-rebuild" class="btn btn-primary btn-sm">
-          🔨 Build
-        </button>
-        <button id="btn-reset" class="btn btn-ghost btn-sm">
-          🔄 Reset Weights
-        </button>
+        <button id="btn-rebuild" class="btn btn-primary btn-sm">🔨 Build Network</button>
+        <button id="btn-reset"   class="btn btn-ghost btn-sm">🔄 Reset Weights</button>
       </div>
     </div>
 
     <!-- Dataset -->
     <div class="panel-section">
       <div class="section-title">Dataset</div>
-
       <div class="field">
         <label>Type</label>
         <select id="dataset-select">
-          <option value="spiral">Spiral</option>
+          <option value="spiral"       selected>Spiral (2-class)</option>
+          <option value="spiral3">Spiral (3-class)</option>
           <option value="xor">XOR</option>
           <option value="circles">Circles</option>
-          <option value="gaussian">Gaussian</option>
+          <option value="moons">Two Moons</option>
+          <option value="gaussian">Gaussian Blobs</option>
           <option value="checkerboard">Checkerboard</option>
+          <option value="ringclusters">Ring Clusters</option>
+          <option value="sin">Sine Wave (Regression)</option>
+          <option value="cubic">Cubic Polynomial (Regression)</option>
+          <option value="step">Step Function (Regression)</option>
         </select>
       </div>
-
       <div class="field">
-        <label>
-          Noise
-          <span class="field-value" id="noise-val">0.10</span>
-        </label>
+        <label>Noise <span class="field-value" id="noise-val">0.10</span></label>
         <input type="range" id="noise-slider" min="0" max="0.5" step="0.01" value="0.1" />
       </div>
-
       <div class="field">
-        <label>Sample Count</label>
+        <label>Samples</label>
         <select id="data-count">
           <option value="100">100</option>
           <option value="200">200</option>
@@ -110,37 +120,72 @@
           <option value="1000">1000</option>
         </select>
       </div>
+      <canvas id="dataset-preview" width="260" height="120"></canvas>
 
-      <canvas id="dataset-preview" width="240" height="120"></canvas>
+      <!-- Custom point placement controls -->
+      <div style="margin-top: 10px;">
+        <div style="font-size:9px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Interactive Drawing</div>
+        <div style="display:flex;gap:4px;margin-bottom:6px;">
+          <button id="btn-draw-c0" class="btn btn-ghost btn-xs active" style="flex:1;border-color:var(--indigo-500);color:var(--indigo-400)">Class 0</button>
+          <button id="btn-draw-c1" class="btn btn-ghost btn-xs" style="flex:1;">Class 1</button>
+          <button id="btn-draw-c2" class="btn btn-ghost btn-xs" style="flex:1;display:none;">Class 2</button>
+        </div>
+        <div style="font-size:10px;color:var(--text-muted);text-align:center;">
+          Click Decision Boundary canvas to place custom points
+        </div>
+      </div>
     </div>
 
   </aside>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
-       CENTER — Visualization Area
-  ════════════════════════════════════════════════════════════════════════════ -->
+       CENTER — Visualization
+  ═══════════════════════════════════════════════════════════════════════════ -->
   <main id="center">
 
-    <!-- Tab bar -->
     <div id="viz-tabs">
-      <button class="viz-tab active" data-pane="network">Network Topology</button>
-      <button class="viz-tab" data-pane="boundary">Decision Boundary</button>
+      <button class="viz-tab active" data-pane="network">Network</button>
+      <button class="viz-tab"        data-pane="boundary">Decision Boundary</button>
+      <button class="viz-tab"        data-pane="inspector">Neuron Inspector</button>
+      <button class="viz-tab"        data-pane="comparison">Run Comparison</button>
     </div>
 
-    <!-- Visualization area -->
     <div id="viz-area">
-      <!-- Network diagram -->
+      <!-- Network Topology -->
       <div class="viz-pane active" id="pane-network">
         <canvas id="network-canvas"></canvas>
       </div>
 
-      <!-- Decision boundary -->
+      <!-- Decision Boundary -->
       <div class="viz-pane" id="pane-boundary">
         <canvas id="boundary-canvas" width="480" height="480"></canvas>
       </div>
+
+      <!-- Neuron Inspector -->
+      <div class="viz-pane" id="pane-inspector">
+        <div id="inspector-info-bar" id="inspector-info">No neuron selected — click a neuron on the Network tab</div>
+        <div class="inspector-canvas-wrap">
+          <canvas id="inspector-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Run Comparison -->
+      <div class="viz-pane" id="pane-comparison">
+        <div class="comparison-header">
+          <span style="font-size:11px;font-weight:600;color:var(--text-secondary);">Loss Curves — All Runs</span>
+          <div class="comparison-actions">
+            <button id="btn-save-run"   class="btn btn-ghost btn-xs">📌 Save Run</button>
+            <button id="btn-clear-runs" class="btn btn-ghost btn-xs">🗑️ Clear All</button>
+          </div>
+        </div>
+        <div class="comparison-chart-wrap">
+          <canvas id="comparison-canvas"></canvas>
+        </div>
+        <div id="comparison-legend"></div>
+      </div>
     </div>
 
-    <!-- Charts -->
+    <!-- Live charts -->
     <div id="bottom-bar">
       <div class="chart-wrap" id="loss-chart-wrap">
         <canvas id="loss-canvas"></canvas>
@@ -153,123 +198,166 @@
   </main>
 
   <!-- ═══════════════════════════════════════════════════════════════════════
-       RIGHT PANEL — Training Controls & Stats
-  ════════════════════════════════════════════════════════════════════════════ -->
+       RIGHT PANEL — Training + Stats
+  ═══════════════════════════════════════════════════════════════════════════ -->
   <aside class="panel" id="right-panel">
 
-    <!-- Training Controls -->
+    <!-- Training controls -->
     <div class="panel-section">
-      <div class="section-title">Training Controls</div>
+      <div class="section-title">Training</div>
+      <div class="train-btn-group" style="margin-bottom:10px;">
+        <button id="btn-train" class="btn btn-primary">▶ Train</button>
+        <button id="btn-stop"  class="btn btn-danger" disabled>■ Stop</button>
+      </div>
 
-      <div id="train-controls">
-        <div class="train-btn-group">
-          <button id="btn-train" class="btn btn-primary">
-            ▶ Train
-          </button>
-          <button id="btn-stop" class="btn btn-danger" disabled>
-            ■ Stop
-          </button>
-        </div>
+      <div class="field">
+        <label>Learning Rate <span class="field-value" id="lr-val">1e-2</span></label>
+        <input type="range" id="lr-slider" min="-4" max="-1" step="0.25" value="-2" />
+        <div class="lr-ticks"><span>1e-4</span><span>1e-3</span><span>1e-2</span><span>1e-1</span></div>
+      </div>
 
-        <div class="field">
-          <label>
-            Learning Rate
-            <span class="field-value" id="lr-val">1e-2</span>
-          </label>
-          <input type="range" id="lr-slider" min="-4" max="-1" step="0.25" value="-2" />
-          <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:2px;">
-            <span>1e-4</span><span>1e-3</span><span>1e-2</span><span>1e-1</span>
-          </div>
-        </div>
+      <div class="field">
+        <label>LR Schedule</label>
+        <select id="lr-schedule-select">
+          <option value="constant" selected>Constant</option>
+          <option value="cosine">Cosine Decay</option>
+          <option value="step">Step Decay (÷2 / 100ep)</option>
+        </select>
+      </div>
 
-        <div class="field">
-          <label>Optimizer</label>
-          <select id="optimizer-select">
-            <option value="adam" selected>Adam</option>
-            <option value="sgd">SGD</option>
-          </select>
-        </div>
+      <div class="field">
+        <label>Optimizer</label>
+        <select id="optimizer-select">
+          <option value="adam" selected>Adam</option>
+          <option value="sgd">SGD</option>
+        </select>
+      </div>
 
-        <div class="field">
-          <label>Batch Size</label>
-          <select id="batch-size">
-            <option value="8">8</option>
-            <option value="16">16</option>
-            <option value="32" selected>32</option>
-            <option value="64">64</option>
-            <option value="128">128</option>
-          </select>
-        </div>
+      <div class="field">
+        <label>Batch Size</label>
+        <select id="batch-size">
+          <option value="8">8</option>
+          <option value="16">16</option>
+          <option value="32" selected>32</option>
+          <option value="64">64</option>
+          <option value="128">128</option>
+          <option value="256">Full batch</option>
+        </select>
+      </div>
 
-        <div class="field">
-          <label>Speed (epochs/tick)</label>
-          <div class="speed-options">
-            <button class="speed-btn" data-speed="1">×1</button>
-            <button class="speed-btn active" data-speed="2">×2</button>
-            <button class="speed-btn" data-speed="5">×5</button>
-            <button class="speed-btn" data-speed="10">×10</button>
-          </div>
+      <div class="field">
+        <label>Speed (epochs/tick)</label>
+        <div class="speed-options">
+          <button class="speed-btn" data-speed="1">×1</button>
+          <button class="speed-btn active" data-speed="2">×2</button>
+          <button class="speed-btn" data-speed="5">×5</button>
+          <button class="speed-btn" data-speed="10">×10</button>
         </div>
       </div>
     </div>
 
-    <!-- Live Stats -->
+    <!-- Regularization -->
+    <div class="panel-section">
+      <div class="section-title">Regularization</div>
+
+      <div class="field">
+        <label>Dropout Rate <span class="field-value" id="dropout-val">0%</span></label>
+        <input type="range" id="dropout-slider" min="0" max="0.5" step="0.05" value="0" />
+      </div>
+
+      <div class="field">
+        <label>L2 Weight Decay <span class="field-value" id="l2-val">0e+0</span></label>
+        <input type="range" id="l2-slider" min="-5" max="-1" step="0.5" value="-5" />
+        <div class="lr-ticks"><span>0</span><span>1e-4</span><span>1e-3</span><span>1e-1</span></div>
+      </div>
+    </div>
+
+    <!-- Metrics -->
     <div class="panel-section">
       <div class="section-title">Live Metrics</div>
       <div class="stat-grid">
         <div class="stat-card">
           <div class="stat-value" id="stat-loss">—</div>
-          <div class="stat-label">Loss</div>
+          <div class="stat-label">Train Loss</div>
         </div>
         <div class="stat-card">
           <div class="stat-value" id="stat-acc">—</div>
-          <div class="stat-label">Accuracy</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-value" id="stat-epoch">0</div>
-          <div class="stat-label">Epochs</div>
+          <div class="stat-label" id="lbl-train-acc">Train Acc</div>
         </div>
         <div class="stat-card">
           <div class="stat-value" id="stat-params">—</div>
           <div class="stat-label">Parameters</div>
         </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-lr" style="color:var(--amber-400)">—</div>
+          <div class="stat-label">Eff. LR</div>
+        </div>
       </div>
+
+      <div class="stat-divider"></div>
+
+      <div style="font-size:9px;color:var(--text-muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:0.08em;">Test Set</div>
+      <div class="test-stats">
+        <div class="test-stat">
+          <div class="stat-value" id="stat-test-loss">—</div>
+          <div class="stat-label">Loss</div>
+        </div>
+        <div class="test-stat">
+          <div class="stat-value" id="stat-test-acc">—</div>
+          <div class="stat-label" id="lbl-test-acc">Accuracy</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Confusion Matrix -->
+    <div class="panel-section" id="confusion-matrix-section">
+      <div class="section-title">Confusion Matrix (Test Set)</div>
+      <div id="confusion-matrix"></div>
     </div>
 
     <!-- Weight Heatmap -->
     <div class="panel-section">
       <div class="section-title">Weight Heatmap</div>
       <div id="weights-display"></div>
-      <div style="margin-top: 8px; display:flex; gap:8px; align-items:center; font-size:10px; color:var(--text-muted);">
-        <div style="width:12px;height:12px;border-radius:2px;background:rgba(99,102,241,0.9);"></div> Positive
-        <div style="width:12px;height:12px;border-radius:2px;background:rgba(244,63,94,0.9);"></div> Negative
+      <div style="margin-top:6px;display:flex;gap:8px;align-items:center;font-size:9px;color:var(--text-muted);">
+        <div style="width:10px;height:10px;border-radius:2px;background:rgba(99,102,241,0.9);"></div>+
+        <div style="width:10px;height:10px;border-radius:2px;background:rgba(244,63,94,0.9);"></div>−
+        <span style="margin-left:4px;">Brighter = larger magnitude</span>
       </div>
+    </div>
+
+    <!-- Export Boundary -->
+    <div class="panel-section">
+      <div class="section-title">Export</div>
+      <button id="btn-export-boundary" class="btn btn-ghost btn-sm" style="width:100%;justify-content:center;">
+        🖼️ Export Decision Boundary as PNG
+      </button>
     </div>
 
     <!-- How to Use -->
     <div class="panel-section">
       <div class="section-title">How to Use</div>
-      <div style="font-size:12px; color:var(--text-secondary); line-height:1.7;">
-        <p style="margin-bottom:6px;">
-          <span style="color:var(--indigo-400); font-weight:600;">1.</span>
-          Choose a dataset and adjust noise.
-        </p>
-        <p style="margin-bottom:6px;">
-          <span style="color:var(--indigo-400); font-weight:600;">2.</span>
-          Design your network architecture in the left panel.
-        </p>
-        <p style="margin-bottom:6px;">
-          <span style="color:var(--indigo-400); font-weight:600;">3.</span>
-          Click <strong>Build</strong> to instantiate the network.
-        </p>
-        <p style="margin-bottom:6px;">
-          <span style="color:var(--indigo-400); font-weight:600;">4.</span>
-          Click <strong>Train</strong> and watch the network learn!
-        </p>
-        <p>
-          <span style="color:var(--indigo-400); font-weight:600;">5.</span>
-          Switch tabs to see the Decision Boundary evolve.
-        </p>
+      <ul class="how-to-list">
+        <li><span class="step-num">1</span>Pick a dataset and tweak noise</li>
+        <li><span class="step-num">2</span>Design architecture in the left panel or use a preset</li>
+        <li><span class="step-num">3</span>Click <strong>Build</strong>, then <strong>Train</strong></li>
+        <li><span class="step-num">4</span>Click any neuron → Neuron Inspector tab</li>
+        <li><span class="step-num">5</span>Save runs to compare architectures</li>
+      </ul>
+    </div>
+
+    <!-- Keyboard shortcuts -->
+    <div class="panel-section">
+      <div class="section-title">Keyboard Shortcuts</div>
+      <div class="shortcuts-grid">
+        <kbd class="kbd">Space</kbd><span>Start / Stop training</span>
+        <kbd class="kbd">R</kbd><span>Reset weights</span>
+        <kbd class="kbd">G</kbd><span>Regenerate data</span>
+        <kbd class="kbd">N</kbd><span>Network tab</span>
+        <kbd class="kbd">B</kbd><span>Boundary tab</span>
+        <kbd class="kbd">I</kbd><span>Inspector tab</span>
+        <kbd class="kbd">C</kbd><span>Comparison tab</span>
+        <kbd class="kbd">1–5</kbd><span>Apply preset</span>
       </div>
     </div>
 
@@ -280,12 +368,14 @@
 <!-- Toast -->
 <div id="toast"></div>
 
-<!-- Scripts (order matters) -->
+<!-- Scripts (dependency order) -->
 <script src="src/nn.js"></script>
 <script src="src/datasets.js"></script>
 <script src="src/visualizer.js"></script>
 <script src="src/boundary.js"></script>
 <script src="src/charts.js"></script>
+<script src="src/inspector.js"></script>
+<script src="src/comparison.js"></script>
 <script src="src/app.js"></script>
 
 </body>
