@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Interactive neural network playground — design, train, and visualize deep learning models in real time, right in your browser. No dependencies required." />
+  <title>Neural Network Playground</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       HEADER
+  ════════════════════════════════════════════════════════════════════════════ -->
+  <header id="header">
+    <div class="header-brand">
+      <div class="brand-icon">🧠</div>
+      <span class="brand-name">Neural Network Playground</span>
+    </div>
+
+    <div class="header-status">
+      <div id="status-badge" class="status-badge">
+        <div class="status-dot"></div>
+        <span id="status-text">Idle</span>
+      </div>
+      <span style="font-size:12px; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">
+        Epoch: <span id="stat-epoch" style="color:var(--indigo-400);font-weight:700;">0</span>
+      </span>
+    </div>
+
+    <div class="header-actions">
+      <input type="file" id="import-file" accept=".json" style="display:none" />
+      <button id="btn-import" class="btn btn-ghost btn-sm" data-tooltip="Import a saved model">
+        📂 Import
+      </button>
+      <button id="btn-export" class="btn btn-ghost btn-sm" data-tooltip="Export model weights as JSON">
+        💾 Export
+      </button>
+    </div>
+  </header>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       LEFT PANEL — Architecture & Data
+  ════════════════════════════════════════════════════════════════════════════ -->
+  <aside class="panel" id="left-panel">
+
+    <!-- Network Architecture -->
+    <div class="panel-section">
+      <div class="section-title">Network Architecture</div>
+      <div id="layers-editor"></div>
+    </div>
+
+    <!-- Architecture Controls -->
+    <div class="panel-section">
+      <div class="field">
+        <label>
+          Activation Function
+        </label>
+        <select id="activation-select">
+          <option value="tanh">Tanh</option>
+          <option value="relu">ReLU</option>
+          <option value="sigmoid">Sigmoid</option>
+          <option value="leakyrelu">Leaky ReLU</option>
+          <option value="linear">Linear</option>
+        </select>
+      </div>
+
+      <div class="train-btn-group">
+        <button id="btn-rebuild" class="btn btn-primary btn-sm">
+          🔨 Build
+        </button>
+        <button id="btn-reset" class="btn btn-ghost btn-sm">
+          🔄 Reset Weights
+        </button>
+      </div>
+    </div>
+
+    <!-- Dataset -->
+    <div class="panel-section">
+      <div class="section-title">Dataset</div>
+
+      <div class="field">
+        <label>Type</label>
+        <select id="dataset-select">
+          <option value="spiral">Spiral</option>
+          <option value="xor">XOR</option>
+          <option value="circles">Circles</option>
+          <option value="gaussian">Gaussian</option>
+          <option value="checkerboard">Checkerboard</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>
+          Noise
+          <span class="field-value" id="noise-val">0.10</span>
+        </label>
+        <input type="range" id="noise-slider" min="0" max="0.5" step="0.01" value="0.1" />
+      </div>
+
+      <div class="field">
+        <label>Sample Count</label>
+        <select id="data-count">
+          <option value="100">100</option>
+          <option value="200">200</option>
+          <option value="300" selected>300</option>
+          <option value="500">500</option>
+          <option value="1000">1000</option>
+        </select>
+      </div>
+
+      <canvas id="dataset-preview" width="240" height="120"></canvas>
+    </div>
+
+  </aside>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       CENTER — Visualization Area
+  ════════════════════════════════════════════════════════════════════════════ -->
+  <main id="center">
+
+    <!-- Tab bar -->
+    <div id="viz-tabs">
+      <button class="viz-tab active" data-pane="network">Network Topology</button>
+      <button class="viz-tab" data-pane="boundary">Decision Boundary</button>
+    </div>
+
+    <!-- Visualization area -->
+    <div id="viz-area">
+      <!-- Network diagram -->
+      <div class="viz-pane active" id="pane-network">
+        <canvas id="network-canvas"></canvas>
+      </div>
+
+      <!-- Decision boundary -->
+      <div class="viz-pane" id="pane-boundary">
+        <canvas id="boundary-canvas" width="480" height="480"></canvas>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div id="bottom-bar">
+      <div class="chart-wrap" id="loss-chart-wrap">
+        <canvas id="loss-canvas"></canvas>
+      </div>
+      <div class="chart-wrap" id="acc-chart-wrap">
+        <canvas id="acc-canvas"></canvas>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       RIGHT PANEL — Training Controls & Stats
+  ════════════════════════════════════════════════════════════════════════════ -->
+  <aside class="panel" id="right-panel">
+
+    <!-- Training Controls -->
+    <div class="panel-section">
+      <div class="section-title">Training Controls</div>
+
+      <div id="train-controls">
+        <div class="train-btn-group">
+          <button id="btn-train" class="btn btn-primary">
+            ▶ Train
+          </button>
+          <button id="btn-stop" class="btn btn-danger" disabled>
+            ■ Stop
+          </button>
+        </div>
+
+        <div class="field">
+          <label>
+            Learning Rate
+            <span class="field-value" id="lr-val">1e-2</span>
+          </label>
+          <input type="range" id="lr-slider" min="-4" max="-1" step="0.25" value="-2" />
+          <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-top:2px;">
+            <span>1e-4</span><span>1e-3</span><span>1e-2</span><span>1e-1</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Optimizer</label>
+          <select id="optimizer-select">
+            <option value="adam" selected>Adam</option>
+            <option value="sgd">SGD</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Batch Size</label>
+          <select id="batch-size">
+            <option value="8">8</option>
+            <option value="16">16</option>
+            <option value="32" selected>32</option>
+            <option value="64">64</option>
+            <option value="128">128</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label>Speed (epochs/tick)</label>
+          <div class="speed-options">
+            <button class="speed-btn" data-speed="1">×1</button>
+            <button class="speed-btn active" data-speed="2">×2</button>
+            <button class="speed-btn" data-speed="5">×5</button>
+            <button class="speed-btn" data-speed="10">×10</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Stats -->
+    <div class="panel-section">
+      <div class="section-title">Live Metrics</div>
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-value" id="stat-loss">—</div>
+          <div class="stat-label">Loss</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-acc">—</div>
+          <div class="stat-label">Accuracy</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-epoch">0</div>
+          <div class="stat-label">Epochs</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-value" id="stat-params">—</div>
+          <div class="stat-label">Parameters</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Weight Heatmap -->
+    <div class="panel-section">
+      <div class="section-title">Weight Heatmap</div>
+      <div id="weights-display"></div>
+      <div style="margin-top: 8px; display:flex; gap:8px; align-items:center; font-size:10px; color:var(--text-muted);">
+        <div style="width:12px;height:12px;border-radius:2px;background:rgba(99,102,241,0.9);"></div> Positive
+        <div style="width:12px;height:12px;border-radius:2px;background:rgba(244,63,94,0.9);"></div> Negative
+      </div>
+    </div>
+
+    <!-- How to Use -->
+    <div class="panel-section">
+      <div class="section-title">How to Use</div>
+      <div style="font-size:12px; color:var(--text-secondary); line-height:1.7;">
+        <p style="margin-bottom:6px;">
+          <span style="color:var(--indigo-400); font-weight:600;">1.</span>
+          Choose a dataset and adjust noise.
+        </p>
+        <p style="margin-bottom:6px;">
+          <span style="color:var(--indigo-400); font-weight:600;">2.</span>
+          Design your network architecture in the left panel.
+        </p>
+        <p style="margin-bottom:6px;">
+          <span style="color:var(--indigo-400); font-weight:600;">3.</span>
+          Click <strong>Build</strong> to instantiate the network.
+        </p>
+        <p style="margin-bottom:6px;">
+          <span style="color:var(--indigo-400); font-weight:600;">4.</span>
+          Click <strong>Train</strong> and watch the network learn!
+        </p>
+        <p>
+          <span style="color:var(--indigo-400); font-weight:600;">5.</span>
+          Switch tabs to see the Decision Boundary evolve.
+        </p>
+      </div>
+    </div>
+
+  </aside>
+
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Scripts (order matters) -->
+<script src="src/nn.js"></script>
+<script src="src/datasets.js"></script>
+<script src="src/visualizer.js"></script>
+<script src="src/boundary.js"></script>
+<script src="src/charts.js"></script>
+<script src="src/app.js"></script>
+
+</body>
+</html>
